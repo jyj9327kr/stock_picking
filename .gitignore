@@ -1,0 +1,27 @@
+# Python Virtual Environment
+venv/
+.venv/
+env/
+.env
+
+# Compiled python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Data Cache Directory (Pickle cache for price data and tickers)
+data/
+docs_cache/
+
+# Execution Output Reports
+output/
+
+# IDE configurations
+.vscode/
+.idea/
+.gemini/
+.agents/
+walkthrough.md
+implementation_plan.md
+task.md
