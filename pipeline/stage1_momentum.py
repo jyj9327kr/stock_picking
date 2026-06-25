@@ -21,6 +21,7 @@ from utils.data_fetcher import (
     get_top_volume_tickers,
     get_market_benchmark_return,
     calculate_sector_performance,
+    get_naver_financial_info,
 )
 
 logger = logging.getLogger(__name__)
@@ -220,9 +221,18 @@ def run_stage1_screening():
         logger.error("Could not fetch ticker list.")
         return pd.DataFrame()
 
+    # Filter out stocks with market cap <= 150B KRW (150,000,000,000 KRW)
+    if 'Marcap' in df_tickers.columns:
+        initial_count = len(df_tickers)
+        df_tickers = df_tickers[df_tickers['Marcap'] > 150000000000]
+        logger.info(f"Filtered out {initial_count - len(df_tickers)} stocks with market cap <= 150B KRW. Remaining: {len(df_tickers)}")
+    else:
+        logger.warning("Marcap column not found in ticker data. Cannot apply 150B cap filter.")
+
     # Build maps
     name_map = dict(zip(df_tickers['ticker'], df_tickers['name']))
     market_map = dict(zip(df_tickers['ticker'], df_tickers['market']))
+    marcap_map = dict(zip(df_tickers['ticker'], df_tickers['Marcap'])) if 'Marcap' in df_tickers.columns else {}
     
     # Load sector map for final reporting/metadata
     sector_map = get_stock_sector_map()
@@ -263,6 +273,7 @@ def run_stage1_screening():
                 'Name': name,
                 'Market': market,
                 'Sector': sector,
+                'Marcap': marcap_map.get(ticker, 0),
             }
             result.update(metrics)
             passed_tickers.append(result)
@@ -270,6 +281,25 @@ def run_stage1_screening():
     df_passed = pd.DataFrame(passed_tickers)
 
     if not df_passed.empty:
+        logger.info(f"Fetching Naver financial info for {len(df_passed)} passed tickers...")
+        df_passed['Revenue'] = None
+        df_passed['Operating_Income'] = None
+        df_passed['ROE'] = None
+        df_passed['PER'] = None
+        df_passed['PBR'] = None
+        
+        for idx, row in df_passed.iterrows():
+            ticker = row['Ticker']
+            try:
+                fin_info = get_naver_financial_info(ticker)
+                df_passed.at[idx, 'Revenue'] = fin_info.get('Revenue')
+                df_passed.at[idx, 'Operating_Income'] = fin_info.get('Operating_Income')
+                df_passed.at[idx, 'ROE'] = fin_info.get('ROE')
+                df_passed.at[idx, 'PER'] = fin_info.get('PER')
+                df_passed.at[idx, 'PBR'] = fin_info.get('PBR')
+            except Exception as e:
+                logger.error(f"Error updating financials for {ticker}: {e}")
+                
         df_passed = df_passed.sort_values('Distance_52W_High', ascending=True).reset_index(drop=True)
 
     logger.info(f"STAGE 1 Completed. {len(df_passed)} tickers passed.")

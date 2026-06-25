@@ -1,7 +1,11 @@
 import argparse
 import logging
 import os
+import glob
+import json
 from datetime import datetime
+import pandas as pd
+import numpy as np
 
 from pipeline.stage1_momentum import run_stage1_screening
 from pipeline.stage2_fundamentals import (
@@ -28,8 +32,29 @@ def save_results(df, filename_prefix):
     csv_path = out_dir / f"{filename_prefix}_{timestamp}.csv"
     md_path = out_dir / f"{filename_prefix}_{timestamp}.md"
     
+    # 2) Filter and reorder columns according to user request
+    target_columns = [
+        'Ticker', 'Name', 'Sector', 'Current_Price', 'Marcap', 
+        'Revenue', 'Operating_Income', 'ROE', 'PER', 'PBR', 'Excess_Return_3M'
+    ]
+    
+    df_to_save = df.copy()
+    for col in target_columns:
+        if col not in df_to_save.columns:
+            df_to_save[col] = None
+            
+    df_to_save = df_to_save[target_columns]
+    
     # Save CSV
-    df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    df_to_save.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    
+    # If it's weekly watchlist or Stage 1 weekly, also save to weekly_results directory for Git / GitHub Pages
+    if filename_prefix in ["Stage1_Weekly", "Watchlist_Weekly"]:
+        weekly_dir = BASE_DIR / "weekly_results"
+        weekly_dir.mkdir(parents=True, exist_ok=True)
+        weekly_csv_path = weekly_dir / f"{filename_prefix}_{timestamp}.csv"
+        df_to_save.to_csv(weekly_csv_path, index=False, encoding='utf-8-sig')
+        logger.info(f"Saved duplicate weekly result to {weekly_csv_path}")
     
     # Calculate top 3 sectors if Sector column exists
     top_sectors_summary = ""
@@ -50,9 +75,111 @@ def save_results(df, filename_prefix):
             for i, (sec, count) in enumerate(sector_counts.head(3).items()):
                 f.write(f"{i+1}. **{sec}** ({count}개)\n")
             f.write("\n---\n\n")
-        f.write(df.to_markdown(index=False))
+        f.write(df_to_save.to_markdown(index=False))
         
     logger.info(f"Saved results to {csv_path} and {md_path}")
+
+
+def generate_github_pages_data():
+    """
+    Analyzes the weekly CSV files in 'weekly_results' directory.
+    Identifies the most recent CSV file and counts how many times 
+    each stock has appeared in the last 4 weekly CSV files.
+    Saves the aggregated data to 'weekly_results/data.json' for GitHub Pages.
+    """
+    logger.info("Generating GitHub Pages dataset from weekly results...")
+    weekly_dir = BASE_DIR / "weekly_results"
+    if not weekly_dir.exists():
+        logger.warning("No weekly_results directory found.")
+        return
+        
+    # Try to find Watchlist_Weekly CSV files first
+    csv_pattern = str(weekly_dir / "Watchlist_Weekly_*.csv")
+    csv_files = glob.glob(csv_pattern)
+    prefix = "Watchlist_Weekly"
+    
+    # If none found, fallback to Stage1_Weekly CSV files
+    if not csv_files:
+        logger.info("No Watchlist_Weekly files found. Falling back to Stage1_Weekly.")
+        csv_pattern = str(weekly_dir / "Stage1_Weekly_*.csv")
+        csv_files = glob.glob(csv_pattern)
+        prefix = "Stage1_Weekly"
+        
+    if not csv_files:
+        logger.warning("No weekly result CSV files found in weekly_results.")
+        return
+        
+    # Sort files by filename descending (recent first)
+    csv_files.sort(reverse=True)
+    
+    # We take up to 4 most recent files
+    target_files = csv_files[:4]
+    logger.info(f"Analyzing {len(target_files)} recent weekly files: {[os.path.basename(f) for f in target_files]}")
+    
+    # Read the most recent file as the baseline
+    latest_file = target_files[0]
+    try:
+        df_latest = pd.read_csv(latest_file)
+    except Exception as e:
+        logger.error(f"Failed to read latest weekly file {latest_file}: {e}")
+        return
+        
+    if df_latest.empty:
+        logger.warning("Latest weekly file is empty.")
+        data_to_save = {
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "stocks": []
+        }
+        with open(weekly_dir / "data.json", "w", encoding="utf-8") as f:
+            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        return
+
+    # Treat Ticker as padded string
+    df_latest['Ticker'] = df_latest['Ticker'].astype(str).str.zfill(6)
+    
+    # Read older files
+    historical_tickers = []
+    for hist_file in target_files[1:]:
+        try:
+            df_hist = pd.read_csv(hist_file)
+            if not df_hist.empty:
+                df_hist['Ticker'] = df_hist['Ticker'].astype(str).str.zfill(6)
+                historical_tickers.append(set(df_hist['Ticker'].tolist()))
+        except Exception as e:
+            logger.warning(f"Failed to read historical file {hist_file}: {e}")
+            
+    stocks_list = []
+    for _, row in df_latest.iterrows():
+        ticker = row['Ticker']
+        appearance_count = 1
+        
+        for hist_set in historical_tickers:
+            if ticker in hist_set:
+                appearance_count += 1
+                
+        stock_data = row.to_dict()
+        
+        # Clean NaN/Infinity for valid JSON output
+        for k, v in stock_data.items():
+            if pd.isna(v):
+                stock_data[k] = None
+            elif isinstance(v, (int, float)) and np.isinf(v):
+                stock_data[k] = None
+                
+        stock_data['Appearance_Count'] = appearance_count
+        stocks_list.append(stock_data)
+        
+    data_to_save = {
+        "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "stocks": stocks_list
+    }
+    
+    json_path = weekly_dir / "data.json"
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        
+    logger.info(f"Successfully generated Pages data: {json_path}")
+
 
 def run_daily():
     """Daily (Post-Market): Execute Stage 1 to track emerging breakouts."""
@@ -96,6 +223,7 @@ def run_weekly():
     # Stage 2
     df_stage2 = run_stage2_screening(df_stage1_top)
     save_results(df_stage2, "Watchlist_Weekly")
+    generate_github_pages_data()
     
     if not df_stage2.empty:
         logger.info(f"\n--- Weekly Watchlist Summary ---")

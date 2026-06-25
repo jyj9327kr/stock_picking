@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Market Leaders - Mark Minervini Quant Trading</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-glows">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-chart-line section-icon"></i>
+                <h1>Safe Market Leaders</h1>
+            </div>
+            <p class="subtitle">Mark Minervini 8 Trend Templates & Quality Financial Filters</p>
+            <div class="last-updated-badge" id="last-updated">
+                <i class="fa-regular fa-clock"></i> 업데이트 확인 중...
+            </div>
+        </header>
+
+        <section class="stats-section">
+            <div class="stat-card glass animate-fade-in">
+                <div class="stat-icon purple"><i class="fa-solid fa-bullseye"></i></div>
+                <div class="stat-info">
+                    <h3>총 추천 종목</h3>
+                    <p id="total-stocks-count">-</p>
+                </div>
+            </div>
+            <div class="stat-card glass animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="stat-icon pink"><i class="fa-solid fa-fire animate-pulse"></i></div>
+                <div class="stat-info">
+                    <h3>최다 중복 출현 (4회)</h3>
+                    <p id="max-appearing-count">-</p>
+                </div>
+            </div>
+            <div class="stat-card glass animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="stat-icon blue"><i class="fa-solid fa-filter"></i></div>
+                <div class="stat-info">
+                    <h3>시가총액 1500억+</h3>
+                    <p>적용 됨</p>
+                </div>
+            </div>
+        </section>
+
+        <main class="glass main-content">
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="종목명, 티커, 섹터로 검색...">
+                </div>
+                <div class="filter-options">
+                    <button class="filter-btn active" data-filter="all">전체</button>
+                    <button class="filter-btn" data-filter="4">4회 연속 출현</button>
+                    <button class="filter-btn" data-filter="3">3회 이상 출현</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="stocks-table">
+                    <thead>
+                        <tr>
+                            <th>티커</th>
+                            <th>종목명</th>
+                            <th>업종 (Sector)</th>
+                            <th class="num-col">현재가</th>
+                            <th class="num-col">시가총액</th>
+                            <th class="num-col">최근 매출액</th>
+                            <th class="num-col">최근 영업이익</th>
+                            <th class="num-col">ROE</th>
+                            <th class="num-col">PER</th>
+                            <th class="num-col">PBR</th>
+                            <th class="num-col">3M 초과수익</th>
+                            <th class="center-col">최근 4주 출현</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="12" class="loading-state">
+                                <i class="fa-solid fa-circle-notch fa-spin"></i> 데이터를 불러오는 중입니다...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2026 Safe Market Leaders Quant Pipeline. Built for Mark Minervini Momentum Screener.</p>
+        </footer>
+    </div>
+
+    <!-- Application Script -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -75,6 +75,19 @@ EQUITY_NAMES = [
     '자본합계',
 ]
 
+REVENUE_NAMES = [
+    '매출액',
+    '영업수익',
+    '매출',
+    '매출액(영업수익)',
+]
+
+OPER_INCOME_NAMES = [
+    '영업이익',
+    '영업이익(손실)',
+    '영업손익',
+]
+
 
 def _clean_amount(value):
     """Converts DART amount string to numeric value."""
@@ -296,10 +309,18 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
 
     # Apply filters
     if roe >= ROE_MIN and eps_yoy >= EPS_YOY_MIN and eps_qoq >= EPS_QOQ_MIN:
+        revenue_val = _find_account_value(df_fin, REVENUE_NAMES, 'thstrm_amount')
+        oper_income_val = _find_account_value(df_fin, OPER_INCOME_NAMES, 'thstrm_amount')
+        
+        revenue_100m = round(revenue_val / 100000000.0, 1) if revenue_val is not None else None
+        oper_income_100m = round(oper_income_val / 100000000.0, 1) if oper_income_val is not None else None
+
         return {
             'ROE': round(roe, 2),
             'EPS_YoY': round(eps_yoy, 2),
             'EPS_QoQ': round(eps_qoq, 2),
+            'Revenue': revenue_100m,
+            'Operating_Income': oper_income_100m,
             'Report_Year': used_year,
             'Report_Code': used_reprt_code,
         }
@@ -362,7 +383,9 @@ def run_stage2_screening(df_stage1):
             metrics = evaluate_fundamentals(corp_code, year, reprt_code)
             if metrics:
                 result = row.to_dict()
-                result.update(metrics)
+                for key, val in metrics.items():
+                    if val is not None or key not in result:
+                        result[key] = val
                 passed_fundamentals.append(result)
                 name = row.get('Name', ticker)
                 logger.info(

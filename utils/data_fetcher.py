@@ -9,6 +9,7 @@ import time
 import logging
 import requests
 from io import BytesIO
+from bs4 import BeautifulSoup
 
 from config import CACHE_DIR, DART_API_KEY
 
@@ -73,12 +74,14 @@ def get_kospi_kosdaq_tickers():
                     name = row.get('Name', '')
                     amount = row.get('Amount', 0)
                     volume = row.get('Volume', 0)
+                    marcap = row.get('Marcap', 0)
                     rows.append({
                         'market': market,
                         'ticker': code,
                         'name': name,
                         'amount': amount,    # 거래대금
                         'volume': volume,    # 거래량
+                        'Marcap': marcap,    # 시가총액
                     })
 
         df_tickers = pd.DataFrame(rows)
@@ -325,3 +328,127 @@ def get_financials(corp_code, year, reprt_code='11011'):
     except Exception as e:
         logger.error(f"Error fetching DART financials for {corp_code} {year} {reprt_code}: {e}")
         return None
+
+
+def get_naver_financial_info(ticker):
+    """
+    Fetches Revenue, Operating Income, ROE, PER, PBR from Naver Finance.
+    Saves to and loads from local cache (max age 1 day) to avoid hitting Naver repeatedly.
+    """
+    cache_name = f"naver_fin_{ticker}_{datetime.today().strftime('%Y%m%d')}"
+    cached = load_from_cache(cache_name, max_age_days=1)
+    if cached is not None:
+        return cached
+
+    result = {
+        'Revenue': None,
+        'Operating_Income': None,
+        'ROE': None,
+        'PER': None,
+        'PBR': None
+    }
+    
+    url = f"https://finance.naver.com/item/main.naver?code={ticker}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    try:
+        resp = requests.get(url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return result
+            
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        
+        # 1. PER, PBR from the right panel
+        per_elem = soup.find(id='_per')
+        if per_elem:
+            try:
+                result['PER'] = float(per_elem.text.replace(',', '').strip())
+            except ValueError:
+                pass
+                
+        pbr_elem = soup.find(id='_pbr')
+        if pbr_elem:
+            try:
+                result['PBR'] = float(pbr_elem.text.replace(',', '').strip())
+            except ValueError:
+                pass
+        
+        # 2. Revenue, Operating Income, ROE from Corporate Analysis Table
+        table = soup.select_one('.section.cop_analysis table')
+        if table:
+            rows = table.select('tr')
+            if len(rows) > 1:
+                headers_row = [th.get_text(strip=True) for th in rows[1].select('th, td')]
+                
+                # Find the most recent quarter (index >= 4) that does not end with '(E)'
+                target_col_idx = -1
+                for idx in range(len(headers_row) - 1, 3, -1):
+                    col_name = headers_row[idx]
+                    if '(E)' not in col_name and col_name:
+                        target_col_idx = idx
+                        break
+                
+                # Fallback to the most recent annual (index 0 to 3) without (E)
+                if target_col_idx == -1:
+                    for idx in range(3, -1, -1):
+                        col_name = headers_row[idx]
+                        if '(E)' not in col_name and col_name:
+                            target_col_idx = idx
+                            break
+                            
+                if target_col_idx != -1:
+                    data_col_idx = target_col_idx + 1
+                    
+                    for r in rows[2:]:
+                        tds = [td.get_text(strip=True) for td in r.select('th, td')]
+                        if not tds:
+                            continue
+                        row_title = tds[0]
+                        
+                        if '매출액' in row_title and len(tds) > data_col_idx:
+                            val_str = tds[data_col_idx].replace(',', '').strip()
+                            if val_str and val_str != '-':
+                                try:
+                                    # Revenue in 100M KRW (억 원)
+                                    result['Revenue'] = float(val_str)
+                                except ValueError:
+                                    pass
+                        elif '영업이익' in row_title and '영업이익률' not in row_title and len(tds) > data_col_idx:
+                            val_str = tds[data_col_idx].replace(',', '').strip()
+                            if val_str and val_str != '-':
+                                try:
+                                    # Operating Income in 100M KRW (억 원)
+                                    result['Operating_Income'] = float(val_str)
+                                except ValueError:
+                                    pass
+                        elif 'ROE' in row_title and len(tds) > data_col_idx:
+                            val_str = tds[data_col_idx].replace(',', '').strip()
+                            if val_str and val_str != '-':
+                                try:
+                                    result['ROE'] = float(val_str)
+                                except ValueError:
+                                    pass
+                                    
+                        # Fallback for PER and PBR if not found in side panel
+                        if result['PER'] is None and 'PER' in row_title and len(tds) > data_col_idx:
+                            val_str = tds[data_col_idx].replace(',', '').strip()
+                            if val_str and val_str != '-':
+                                try:
+                                    result['PER'] = float(val_str)
+                                except ValueError:
+                                    pass
+                        if result['PBR'] is None and 'PBR' in row_title and len(tds) > data_col_idx:
+                            val_str = tds[data_col_idx].replace(',', '').strip()
+                            if val_str and val_str != '-':
+                                try:
+                                    result['PBR'] = float(val_str)
+                                except ValueError:
+                                    pass
+    except Exception as e:
+        logger.error(f"Error scraping Naver Finance for {ticker}: {e}")
+        
+    save_to_cache(result, cache_name)
+    return result
+
