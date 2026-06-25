@@ -106,12 +106,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatExcessReturn(val) {
         if (val === null || val === undefined) return '-';
-        // Typically stored as decimal (e.g. 0.1996 for 19.96%) or percentage.
-        // Let's check: if absolute value is < 5 (like 0.1996), multiply by 100 to show %
-        let percent = Number(val);
-        if (Math.abs(percent) <= 1.0) {
-            percent = percent * 100;
-        }
+        // Backend stores return as a decimal ratio (e.g. 0.1996 for 19.96%, 1.3684 for 136.84%)
+        // Always multiply by 100 to show correct percentage.
+        let percent = Number(val) * 100;
         const sign = percent > 0 ? '+' : '';
         const color = percent > 0 ? 'accent-green' : (percent < 0 ? 'accent-red' : '');
         return `<span style="color: var(--${color || 'text-primary'}); font-weight: 600;">${sign}${percent.toFixed(2)}%</span>`;
