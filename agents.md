@@ -18,7 +18,8 @@ Target: Completely exclude weak bounces or downtrend stocks, and accurately filt
 5. **Short-term Trend Support:** Current Price > 50-day SMA.
 6. **Bottom Escape Confirmation:** Current Price must be at least 30% above the 52-week low (Price >= 52-week Low * 1.3).
 7. **Proximity to High:** Current Price must be within 25% of the 52-week high (Price >= 52-week High * 0.75).
-8. **Relative Strength:** The stock's return over the last 3 months must outperform the return of the KOSPI/KOSDAQ index over the same period.
+8. **Relative Strength:** The stock's return over the last 3 months must outperform the return of the KOSPI/KOSDAQ index over the same period. (코스피/코스닥 중 더 높은 수익률을 공통 벤치마크로 적용하여 Excess Return 3M을 연산하며, 양 지수 중 최대 벤치마크 수익률을 초과한 종목만을 시장 주도주로 필터링합니다.)
+
 
 ### [STAGE 2] Financial Safety Net (Quality Screening)
 Target: Ensure that the momentum stocks passing Stage 1 possess actual earnings power to sustain the trend.

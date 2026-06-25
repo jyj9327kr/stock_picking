@@ -151,8 +151,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update stats layout
             totalCountEl.textContent = `${allStocks.length}개`;
             
-            const goldCount = allStocks.filter(s => s.Appearance_Count === 4).length;
-            maxAppearingEl.textContent = `${goldCount}개`;
+            // Update top sectors
+            const topSectorsEl = document.getElementById('top-sectors-list');
+            if (topSectorsEl && data.top_sectors) {
+                if (data.top_sectors.length > 0) {
+                    topSectorsEl.innerHTML = data.top_sectors.map((sec, idx) => {
+                        const colors = ['gold', 'purple', 'blue'];
+                        const color = colors[idx] || 'grey';
+                        return `<span class="sector-badge ${color}">${idx + 1}위: ${sec}</span>`;
+                    }).join('');
+                } else {
+                    topSectorsEl.innerHTML = `<span class="sector-badge grey">데이터가 없습니다</span>`;
+                }
+            }
             
             // Render table initially
             updateHeaderUI();
@@ -162,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="12" class="empty-state">
+                    <td colspan="10" class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         데이터를 로드하지 못했습니다.<br>
                         <span style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
@@ -205,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="12" class="empty-state">
+                    <td colspan="10" class="empty-state">
                         <i class="fa-solid fa-folder-open"></i> 조건에 부합하는 종목이 없습니다.
                     </td>
                 </tr>
@@ -228,13 +239,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const naverUrl = `https://finance.naver.com/item/main.naver?code=${ticker}`;
             
             tr.innerHTML = `
-                <td><span class="ticker-label">${ticker}</span></td>
                 <td>
-                    <a href="${naverUrl}" target="_blank" class="stock-link">
-                        ${stock.Name} <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                    </a>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <a href="${naverUrl}" target="_blank" class="stock-link">
+                            ${stock.Name}
+                        </a>
+                        <span class="ticker-label">${ticker}</span>
+                        <a href="${naverUrl}" target="_blank" style="color: var(--text-muted); font-size: 0.75rem;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        </a>
+                    </div>
                 </td>
-                <td>${stock.Sector || 'N/A'}</td>
                 <td class="num-col">${formatPrice(stock.Current_Price)}</td>
                 <td class="num-col">${formatMarcap(stock.Marcap)}</td>
                 <td class="num-col">${formatFinancial(stock.Revenue)}</td>

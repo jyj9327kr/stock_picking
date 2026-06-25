@@ -178,8 +178,15 @@ def generate_github_pages_data():
         stock_data['Appearance_Count'] = appearance_count
         stocks_list.append(stock_data)
         
+    # Calculate top 3 sectors from stocks_list
+    valid_sectors = [s['Sector'] for s in stocks_list if s.get('Sector') and s['Sector'] not in ['N/A', '', None]]
+    from collections import Counter
+    sector_counts = Counter(valid_sectors)
+    top_sectors_list = [item[0] for item in sector_counts.most_common(3)]
+
     data_to_save = {
         "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "top_sectors": top_sectors_list,
         "stocks": stocks_list
     }
     

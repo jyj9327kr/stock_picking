@@ -221,11 +221,17 @@ def run_stage1_screening():
         logger.error("Could not fetch ticker list.")
         return pd.DataFrame()
 
+    # Filter out preferred stocks (우선주 제외)
+    initial_count = len(df_tickers)
+    # Exclude names ending with 우, 우A, 우B, 우C, 우선주, 우(전환), 우(선), 우1, 우2, 우3 etc.
+    df_tickers = df_tickers[~df_tickers['name'].str.contains(r'우$|우[A-C]$|우선주$|우\(.*?\)$|우\d[A-C]?$', regex=True)]
+    logger.info(f"Filtered out {initial_count - len(df_tickers)} preferred stocks (우선주). Remaining: {len(df_tickers)}")
+
     # Filter out stocks with market cap <= 150B KRW (150,000,000,000 KRW)
     if 'Marcap' in df_tickers.columns:
-        initial_count = len(df_tickers)
+        initial_cap_count = len(df_tickers)
         df_tickers = df_tickers[df_tickers['Marcap'] > 150000000000]
-        logger.info(f"Filtered out {initial_count - len(df_tickers)} stocks with market cap <= 150B KRW. Remaining: {len(df_tickers)}")
+        logger.info(f"Filtered out {initial_cap_count - len(df_tickers)} stocks with market cap <= 150B KRW. Remaining: {len(df_tickers)}")
     else:
         logger.warning("Marcap column not found in ticker data. Cannot apply 150B cap filter.")
 

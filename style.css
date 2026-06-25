@@ -454,6 +454,47 @@ tbody tr.highlight-3:hover {
     border: 1px solid var(--border-color);
 }
 
+.top-sectors-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sector-badge {
+    padding: 0.35rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+
+.sector-badge.gold {
+    background: rgba(236, 72, 153, 0.15);
+    color: #ff9ee2;
+    border-color: rgba(236, 72, 153, 0.3);
+}
+
+.sector-badge.purple {
+    background: rgba(168, 85, 247, 0.1);
+    color: #d8b4fe;
+    border-color: rgba(168, 85, 247, 0.2);
+}
+
+.sector-badge.blue {
+    background: rgba(59, 130, 246, 0.1);
+    color: #bfdbfe;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.sector-badge.grey {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
 /* Alignment Helpers */
 .num-col {
     text-align: right;

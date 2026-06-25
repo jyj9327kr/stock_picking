@@ -32,25 +32,22 @@
         </header>
 
         <section class="stats-section">
-            <div class="stat-card glass animate-fade-in">
-                <div class="stat-icon purple"><i class="fa-solid fa-bullseye"></i></div>
+            <div class="stat-card glass animate-fade-in" style="flex: 2;">
+                <div class="stat-icon purple"><i class="fa-solid fa-ranking-star animate-pulse"></i></div>
+                <div class="stat-info" style="width: 100%;">
+                    <h3>🔥 실시간 트렌드 업종 (Top 3 Sectors)</h3>
+                    <div class="top-sectors-container" id="top-sectors-list">
+                        <span class="sector-badge">-</span>
+                        <span class="sector-badge">-</span>
+                        <span class="sector-badge">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card glass animate-fade-in" style="animation-delay: 0.1s; flex: 1;">
+                <div class="stat-icon blue"><i class="fa-solid fa-bullseye"></i></div>
                 <div class="stat-info">
                     <h3>총 추천 종목</h3>
                     <p id="total-stocks-count">-</p>
-                </div>
-            </div>
-            <div class="stat-card glass animate-fade-in" style="animation-delay: 0.1s;">
-                <div class="stat-icon pink"><i class="fa-solid fa-fire animate-pulse"></i></div>
-                <div class="stat-info">
-                    <h3>최다 중복 출현 (4회)</h3>
-                    <p id="max-appearing-count">-</p>
-                </div>
-            </div>
-            <div class="stat-card glass animate-fade-in" style="animation-delay: 0.2s;">
-                <div class="stat-icon blue"><i class="fa-solid fa-filter"></i></div>
-                <div class="stat-info">
-                    <h3>시가총액 1500억+</h3>
-                    <p>적용 됨</p>
                 </div>
             </div>
         </section>
@@ -72,9 +69,7 @@
                 <table id="stocks-table">
                     <thead>
                         <tr>
-                            <th data-sort="Ticker" style="cursor: pointer;">티커 <i class="fa-solid fa-sort sort-icon-header"></i></th>
                             <th data-sort="Name" style="cursor: pointer;">종목명 <i class="fa-solid fa-sort sort-icon-header"></i></th>
-                            <th data-sort="Sector" style="cursor: pointer;">업종 (Sector) <i class="fa-solid fa-sort sort-icon-header"></i></th>
                             <th data-sort="Current_Price" class="num-col" style="cursor: pointer;">현재가 <i class="fa-solid fa-sort sort-icon-header"></i></th>
                             <th data-sort="Marcap" class="num-col" style="cursor: pointer;">시가총액 <i class="fa-solid fa-sort sort-icon-header"></i></th>
                             <th data-sort="Revenue" class="num-col" style="cursor: pointer;">최근 매출액 <i class="fa-solid fa-sort sort-icon-header"></i></th>
@@ -88,7 +83,7 @@
                     </thead>
                     <tbody id="table-body">
                         <tr>
-                            <td colspan="12" class="loading-state">
+                            <td colspan="10" class="loading-state">
                                 <i class="fa-solid fa-circle-notch fa-spin"></i> 데이터를 불러오는 중입니다...
                             </td>
                         </tr>
