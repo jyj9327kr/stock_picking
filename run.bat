@@ -39,4 +39,4 @@ if %ERRORLEVEL% neq 0 (
 
 echo.
 echo 모든 작업이 완료되었습니다.
-pause
+:: pause
