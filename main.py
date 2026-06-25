@@ -116,6 +116,15 @@ def generate_github_pages_data():
     target_files = csv_files[:4]
     logger.info(f"Analyzing {len(target_files)} recent weekly files: {[os.path.basename(f) for f in target_files]}")
     
+    # Delete older CSV files to only keep the last 4 in git tracking
+    if len(csv_files) > 4:
+        for old_file in csv_files[4:]:
+            try:
+                os.remove(old_file)
+                logger.info(f"Deleted old weekly CSV file: {os.path.basename(old_file)}")
+            except Exception as e:
+                logger.error(f"Failed to delete old file {old_file}: {e}")
+    
     # Read the most recent file as the baseline
     latest_file = target_files[0]
     try:

@@ -3,6 +3,57 @@ document.addEventListener('DOMContentLoaded', () => {
     let allStocks = [];
     let currentFilter = 'all';
     let searchQuery = '';
+    let sortColumn = 'Appearance_Count';
+    let sortDirection = 'desc';
+
+    // Sorting helper
+    function sortData(stocks) {
+        if (!sortColumn) return stocks;
+        
+        return [...stocks].sort((a, b) => {
+            let valA = a[sortColumn];
+            let valB = b[sortColumn];
+            
+            // Handle null / undefined / NaN values
+            const isNullA = valA === null || valA === undefined || (typeof valA === 'number' && isNaN(valA));
+            const isNullB = valB === null || valB === undefined || (typeof valB === 'number' && isNaN(valB));
+            
+            if (isNullA && isNullB) return 0;
+            if (isNullA) return 1; // Null values always go to the bottom
+            if (isNullB) return -1;
+            
+            let comparison = 0;
+            if (typeof valA === 'string' && typeof valB === 'string') {
+                comparison = valA.localeCompare(valB, 'ko');
+            } else {
+                comparison = Number(valA) - Number(valB);
+            }
+            
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }
+
+    // Update Header UI with sort indicators
+    function updateHeaderUI() {
+        const headers = document.querySelectorAll('#stocks-table th[data-sort]');
+        headers.forEach(th => {
+            const col = th.getAttribute('data-sort');
+            const icon = th.querySelector('i');
+            if (!icon) return;
+            
+            if (col === sortColumn) {
+                th.classList.add('active-sort');
+                if (sortDirection === 'asc') {
+                    icon.className = 'fa-solid fa-sort-up sort-icon-header';
+                } else {
+                    icon.className = 'fa-solid fa-sort-down sort-icon-header';
+                }
+            } else {
+                th.classList.remove('active-sort');
+                icon.className = 'fa-solid fa-sort sort-icon-header';
+            }
+        });
+    }
 
     // Element bindings
     const tableBody = document.getElementById('table-body');
@@ -104,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             maxAppearingEl.textContent = `${goldCount}개`;
             
             // Render table initially
+            updateHeaderUI();
             renderTable();
             
         } catch (error) {
@@ -146,6 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return true;
         });
+
+        // 3. Sort filtered stocks
+        filtered = sortData(filtered);
 
         if (filtered.length === 0) {
             tableBody.innerHTML = `
@@ -214,6 +269,23 @@ document.addEventListener('DOMContentLoaded', () => {
             currentFilter = e.currentTarget.getAttribute('data-filter');
             
             // Render table
+            renderTable();
+        });
+    });
+
+    // Sort events
+    const headers = document.querySelectorAll('#stocks-table th[data-sort]');
+    headers.forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.getAttribute('data-sort');
+            if (sortColumn === col) {
+                // Toggle direction
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = col;
+                sortDirection = 'desc'; // Default to desc when clicking a new column
+            }
+            updateHeaderUI();
             renderTable();
         });
     });

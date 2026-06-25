@@ -72,18 +72,18 @@
                 <table id="stocks-table">
                     <thead>
                         <tr>
-                            <th>티커</th>
-                            <th>종목명</th>
-                            <th>업종 (Sector)</th>
-                            <th class="num-col">현재가</th>
-                            <th class="num-col">시가총액</th>
-                            <th class="num-col">최근 매출액</th>
-                            <th class="num-col">최근 영업이익</th>
-                            <th class="num-col">ROE</th>
-                            <th class="num-col">PER</th>
-                            <th class="num-col">PBR</th>
-                            <th class="num-col">3M 초과수익</th>
-                            <th class="center-col">최근 4주 출현</th>
+                            <th data-sort="Ticker" style="cursor: pointer;">티커 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Name" style="cursor: pointer;">종목명 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Sector" style="cursor: pointer;">업종 (Sector) <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Current_Price" class="num-col" style="cursor: pointer;">현재가 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Marcap" class="num-col" style="cursor: pointer;">시가총액 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Revenue" class="num-col" style="cursor: pointer;">최근 매출액 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Operating_Income" class="num-col" style="cursor: pointer;">최근 영업이익 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="ROE" class="num-col" style="cursor: pointer;">ROE <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="PER" class="num-col" style="cursor: pointer;">PER <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="PBR" class="num-col" style="cursor: pointer;">PBR <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Excess_Return_3M" class="num-col" style="cursor: pointer;">3M 초과수익 <i class="fa-solid fa-sort sort-icon-header"></i></th>
+                            <th data-sort="Appearance_Count" class="center-col" style="cursor: pointer;">최근 4주 출현 <i class="fa-solid fa-sort sort-icon-header"></i></th>
                         </tr>
                     </thead>
                     <tbody id="table-body">

@@ -319,6 +319,28 @@ th {
     position: sticky;
     top: 0;
     z-index: 10;
+    transition: var(--transition-smooth);
+    user-select: none;
+}
+
+th:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.sort-icon-header {
+    margin-left: 0.25rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+}
+
+th.active-sort {
+    color: var(--primary-color) !important;
+}
+
+th.active-sort .sort-icon-header {
+    color: var(--primary-color) !important;
 }
 
 /* Table body rows */
