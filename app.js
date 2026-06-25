@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allStocks = [];
     let currentFilter = 'all';
     let searchQuery = '';
-    let sortColumn = 'Appearance_Count';
+    let sortColumn = 'Operating_Income';
     let sortDirection = 'desc';
 
     // Sorting helper
