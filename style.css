@@ -96,6 +96,36 @@ header {
     position: relative;
 }
 
+.github-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    transition: var(--transition-smooth);
+    z-index: 10;
+}
+
+.github-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-hover);
+    transform: translateY(-50%) scale(1.03);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+}
+
+.github-btn i {
+    font-size: 1.1rem;
+}
+
 .logo {
     display: flex;
     align-items: center;
@@ -599,5 +629,14 @@ footer {
         justify-content: flex-start;
         overflow-x: auto;
         padding-bottom: 0.25rem;
+    }
+    .github-btn {
+        position: static;
+        transform: none !important;
+        align-self: flex-start;
+        margin-top: 0.5rem;
+    }
+    .github-btn:hover {
+        transform: scale(1.03) !important;
     }
 }

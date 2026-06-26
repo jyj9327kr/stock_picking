@@ -3,7 +3,7 @@ import logging
 import os
 import glob
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
@@ -19,7 +19,7 @@ from config import BASE_DIR
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def save_results(df, filename_prefix):
+def save_results(df, filename_prefix, custom_timestamp=None):
     """Saves DataFrame to CSV and Markdown, adding top 3 sectors summary."""
     if df is None or df.empty:
         logger.info(f"No results to save for {filename_prefix}")
@@ -28,7 +28,7 @@ def save_results(df, filename_prefix):
     out_dir = BASE_DIR / "output"
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = custom_timestamp if custom_timestamp else datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_path = out_dir / f"{filename_prefix}_{timestamp}.csv"
     md_path = out_dir / f"{filename_prefix}_{timestamp}.md"
     
@@ -220,31 +220,61 @@ def run_daily():
 def run_weekly():
     """Weekly (Weekend): Full Stage 1 + Stage 2 pipeline for Watchlist generation."""
     logger.info("=" * 60)
-    logger.info("WEEKLY PIPELINE: Stage 1 + Stage 2")
+    logger.info("WEEKLY PIPELINE: Stage 1 + Stage 2 (Generating 4 weeks of data)")
     logger.info("=" * 60)
     
-    # Stage 1
-    df_stage1 = run_stage1_screening()
-    save_results(df_stage1, "Stage1_Weekly")
+    # 1) Clean up all files in weekly_results directory first
+    weekly_dir = BASE_DIR / "weekly_results"
+    if weekly_dir.exists():
+        for f in weekly_dir.glob("*"):
+            if f.is_file():
+                try:
+                    os.remove(f)
+                    logger.info(f"Cleaned up old weekly file: {f.name}")
+                except Exception as e:
+                    logger.error(f"Failed to delete {f.name}: {e}")
+                    
+    # 2) Calculate target dates: today, 1 week ago, 2 weeks ago, 3 weeks ago
+    today_dt = datetime.now()
+    dates = []
+    for weeks_ago in range(4):
+        target_dt = today_dt - timedelta(weeks=weeks_ago)
+        target_date_str = target_dt.strftime("%Y-%m-%d")
+        # Generate custom timestamp for file naming (aligning hours/minutes/seconds)
+        timestamp_str = target_dt.strftime("%Y%m%d_%H%M%S")
+        dates.append((target_date_str, timestamp_str))
+        
+    last_watchlist_df = pd.DataFrame()
     
-    if df_stage1.empty:
-        logger.info("Stage 1 yielded no results, skipping Stage 2.")
-        return
-    
-    # Limit to top 50 before Stage 2 to save DART API calls
-    # Sort by Distance_52W_High (closest to high first)
-    df_stage1_top = df_stage1.sort_values(by='Distance_52W_High').head(50)
-    logger.info(f"Passing top {len(df_stage1_top)} tickers to Stage 2 (out of {len(df_stage1)} from Stage 1)")
-    
-    # Stage 2
-    df_stage2 = run_stage2_screening(df_stage1_top)
-    save_results(df_stage2, "Watchlist_Weekly")
+    for target_date_str, timestamp_str in dates:
+        logger.info(f"\n>>> Running pipeline for target date: {target_date_str} <<<")
+        
+        # Stage 1
+        df_stage1 = run_stage1_screening(target_date=target_date_str)
+        save_results(df_stage1, "Stage1_Weekly", custom_timestamp=timestamp_str)
+        
+        if df_stage1.empty:
+            logger.info(f"Stage 1 yielded no results for {target_date_str}, skipping Stage 2.")
+            continue
+            
+        # Limit to top 50 before Stage 2 to save DART API calls
+        df_stage1_top = df_stage1.sort_values(by='Distance_52W_High').head(50)
+        logger.info(f"Passing top {len(df_stage1_top)} tickers to Stage 2 (out of {len(df_stage1)} from Stage 1)")
+        
+        # Stage 2
+        df_stage2 = run_stage2_screening(df_stage1_top, target_date=target_date_str)
+        save_results(df_stage2, "Watchlist_Weekly", custom_timestamp=timestamp_str)
+        
+        if target_date_str == dates[0][0]:
+            last_watchlist_df = df_stage2
+            
+    # 3) Generate data.json from the newly created files
     generate_github_pages_data()
     
-    if not df_stage2.empty:
-        logger.info(f"\n--- Weekly Watchlist Summary ---")
-        logger.info(f"Final watchlist: {len(df_stage2)} tickers")
-        for _, row in df_stage2.iterrows():
+    if not last_watchlist_df.empty:
+        logger.info(f"\n--- Weekly Watchlist Summary (Latest) ---")
+        logger.info(f"Final watchlist: {len(last_watchlist_df)} tickers")
+        for _, row in last_watchlist_df.iterrows():
             name = row.get('Name', row['Ticker'])
             roe = row.get('ROE', 0)
             yoy = row.get('EPS_YoY', 0)

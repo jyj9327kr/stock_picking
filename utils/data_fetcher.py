@@ -248,7 +248,7 @@ def calculate_sector_performance(sector_stocks, months=1):
     return None
 
 
-def get_market_benchmark_return(market, months=1):
+def get_market_benchmark_return(market, months=1, end_date=None):
     """
     Calculates benchmark return using a market ETF as proxy.
     KOSPI: KODEX 200 (069500), KOSDAQ: KODEX 코스닥150 (229200)
@@ -259,11 +259,17 @@ def get_market_benchmark_return(market, months=1):
     }
     etf_ticker = etf_map.get(market, '069500')
 
-    end_date = datetime.today()
-    start_date = end_date - timedelta(days=months * 30)
+    if end_date is None:
+        end_date_dt = datetime.today()
+    elif isinstance(end_date, str):
+        end_date_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    else:
+        end_date_dt = end_date
+
+    start_date_dt = end_date_dt - timedelta(days=months * 30)
 
     try:
-        df = get_ohlcv(etf_ticker, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
+        df = get_ohlcv(etf_ticker, start_date_dt.strftime('%Y-%m-%d'), end_date_dt.strftime('%Y-%m-%d'))
         if df is not None and len(df) >= 5:
             first_close = df['Close'].iloc[0]
             last_close = df['Close'].iloc[-1]

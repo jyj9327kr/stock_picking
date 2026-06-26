@@ -35,13 +35,23 @@ PREV_QUARTER_MAP = {
 }
 
 
-def get_latest_report_info():
+def get_latest_report_info(target_date=None):
     """
     Determines the latest available report code and year
-    based on the current month.
+    based on the current month or a target date.
     Returns: (year: int, reprt_code: str, description: str)
     """
-    now = datetime.now()
+    if target_date is None:
+        now = datetime.now()
+    else:
+        if isinstance(target_date, str):
+            try:
+                now = datetime.strptime(target_date, '%Y-%m-%d')
+            except ValueError:
+                now = datetime.now()
+        else:
+            now = target_date
+
     current_month = now.month
     current_year = now.year
 
@@ -335,13 +345,13 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
 # ─────────────────────────────────────────────
 #  Stage 2 Runner
 # ─────────────────────────────────────────────
-def run_stage2_screening(df_stage1):
+def run_stage2_screening(df_stage1, target_date=None):
     """
     Runs Stage 2 screening on tickers that passed Stage 1.
     Evaluates actual DART financials for ROE, EPS YoY, and EPS QoQ.
     """
     logger.info("=" * 60)
-    logger.info(f"Starting STAGE 2: Financial Safety Net on {len(df_stage1)} tickers")
+    logger.info(f"Starting STAGE 2: Financial Safety Net on {len(df_stage1)} tickers for date: {target_date or 'today'}")
     logger.info("=" * 60)
 
     if dart is None:
@@ -353,7 +363,7 @@ def run_stage2_screening(df_stage1):
         return pd.DataFrame()
 
     # Determine latest report info
-    year, reprt_code, desc = get_latest_report_info()
+    year, reprt_code, desc = get_latest_report_info(target_date=target_date)
     logger.info(f"Using report: {year}년 {desc} (reprt_code={reprt_code})")
 
     # Build ticker → corp_code mapping

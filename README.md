@@ -1,5 +1,7 @@
 # Korean Market Quant Trading Pipeline
 
+🔗 **[웹 대시보드 바로가기 (Live Dashboard)](https://jyj9327kr.github.io/stock_picking/)**
+
 한국 주식시장(KOSPI / KOSDAQ)에서 대세 상승 국면의 안전한 주도주를 골라내기 위한 파이썬 기반 정량적(Quant) 주식 스크리닝 파이프라인 시스템입니다. 
 
 Mark Minervini의 **8대 추세 템플릿(Trend Template)** 기술적 필터와 실시간 금융감독원 **오픈 DART API** 재무 분석을 결합하여 강력한 모멘텀과 탄탄한 펀더멘탈을 겸비한 "Safe Market Leaders"를 선별합니다.

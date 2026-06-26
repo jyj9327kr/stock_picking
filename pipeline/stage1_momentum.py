@@ -205,14 +205,14 @@ def filter_by_volume_pool(outperforming_sectors, sector_grouped):
 # ─────────────────────────────────────────────
 #  Main Stage 1 Runner
 # ─────────────────────────────────────────────
-def run_stage1_screening():
+def run_stage1_screening(target_date=None):
     """
     Runs Stage 1 screening:
     Applies Minervini trend filters directly to all KOSPI and KOSDAQ tickers.
     Returns a DataFrame of tickers that passed all filters.
     """
     logger.info("=" * 60)
-    logger.info("Starting STAGE 1: Technical Screening (Minervini Trend Template)")
+    logger.info(f"Starting STAGE 1: Technical Screening (Minervini Trend Template) for date: {target_date or 'today'}")
     logger.info("=" * 60)
 
     # Load all tickers
@@ -250,8 +250,8 @@ def run_stage1_screening():
     logger.info(f"Applying Minervini trend filters...")
     
     # Pre-calculate 3-month benchmark returns for KOSPI and KOSDAQ to optimize performance
-    benchmark_3m_kospi = get_market_benchmark_return('KOSPI', months=3)
-    benchmark_3m_kosdaq = get_market_benchmark_return('KOSDAQ', months=3)
+    benchmark_3m_kospi = get_market_benchmark_return('KOSPI', months=3, end_date=target_date)
+    benchmark_3m_kosdaq = get_market_benchmark_return('KOSDAQ', months=3, end_date=target_date)
     logger.info(f"3-Month Benchmark Returns - KOSPI: {benchmark_3m_kospi:.2%}, KOSDAQ: {benchmark_3m_kosdaq:.2%}")
     
     passed_tickers = []
@@ -261,7 +261,16 @@ def run_stage1_screening():
         if i % 200 == 0:
             logger.info(f"Processing Stage 1: {i}/{total}")
 
-        df_ohlcv = get_ohlcv(ticker)
+        if target_date is not None:
+            try:
+                target_dt = datetime.strptime(target_date, '%Y-%m-%d')
+            except ValueError:
+                target_dt = datetime.now()
+            start_str = (target_dt - timedelta(days=600)).strftime('%Y-%m-%d')
+            df_ohlcv = get_ohlcv(ticker, start_date=start_str, end_date=target_date)
+        else:
+            df_ohlcv = get_ohlcv(ticker)
+
         if df_ohlcv is None or df_ohlcv.empty:
             continue
 
