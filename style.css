@@ -484,6 +484,26 @@ tbody tr.highlight-3:hover {
     border: 1px solid var(--border-color);
 }
 
+.badge.risk-green {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--accent-green);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge.risk-red {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+    cursor: help;
+}
+
+.badge.risk-grey {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
 .top-sectors-container {
     display: flex;
     gap: 0.75rem;

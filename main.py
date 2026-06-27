@@ -35,7 +35,7 @@ def save_results(df, filename_prefix, custom_timestamp=None):
     # 2) Filter and reorder columns according to user request
     target_columns = [
         'Ticker', 'Name', 'Sector', 'Current_Price', 'Marcap', 
-        'Revenue', 'Operating_Income', 'ROE', 'PER', 'PBR', 'Excess_Return_3M'
+        'Revenue', 'Operating_Income', 'ROE', 'PER', 'PBR', 'Excess_Return_3M', 'Risk_Flags'
     ]
     
     df_to_save = df.copy()
@@ -276,12 +276,16 @@ def run_weekly():
         logger.info(f"Final watchlist: {len(last_watchlist_df)} tickers")
         for _, row in last_watchlist_df.iterrows():
             name = row.get('Name', row['Ticker'])
-            roe = row.get('ROE', 0)
-            yoy = row.get('EPS_YoY', 0)
-            qoq = row.get('EPS_QoQ', 0)
+            roe = row.get('ROE')
+            yoy = row.get('EPS_YoY')
+            qoq = row.get('EPS_QoQ')
+            risk = row.get('Risk_Flags', 'N/A')
+            roe_str = f"{roe:.1f}%" if roe is not None and not pd.isna(roe) else "N/A"
+            yoy_str = f"{yoy:.1f}%" if yoy is not None and not pd.isna(yoy) else "N/A"
+            qoq_str = f"{qoq:.1f}%" if qoq is not None and not pd.isna(qoq) else "N/A"
             logger.info(
                 f"  {name}({row['Ticker']}): "
-                f"ROE={roe:.1f}%, EPS_YoY={yoy:.1f}%, EPS_QoQ={qoq:.1f}%"
+                f"ROE={roe_str}, EPS_YoY={yoy_str}, EPS_QoQ={qoq_str}, Risk={risk}"
             )
 
 def run_quarterly():

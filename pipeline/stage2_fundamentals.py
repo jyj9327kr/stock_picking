@@ -98,6 +98,39 @@ OPER_INCOME_NAMES = [
     '영업손익',
 ]
 
+OCF_NAMES = [
+    '영업활동현금흐름',
+    '영업활동으로인한현금흐름',
+    '영업활동으로 인한 현금흐름',
+    '영업활동으로인한현금흐름(손실)',
+    '영업에서창출된현금흐름',
+    '영업에서 창출된 현금흐름',
+]
+
+CAPEX_ACQUISITION_NAMES = [
+    '유형자산의취득',
+    '유형자산의 취득',
+    '유형자산취득',
+    '무형자산의취득',
+    '무형자산의 취득',
+    '무형자산취득',
+]
+
+AR_NAMES = [
+    '매출채권',
+    '매출채권및기타채권',
+    '매출채권 및 기타채권',
+    '매출채권및기타유동채권',
+    '매출채권 및 기타유동채권',
+]
+
+INV_NAMES = [
+    '재고자산',
+    '재고자산합계',
+    '재고자산 총액',
+]
+
+
 
 def _clean_amount(value):
     """Converts DART amount string to numeric value."""
@@ -271,10 +304,10 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
     """
     Evaluates fundamentals using actual DART financial statements.
     If the requested report is not available, tries fallback reports.
-    Returns a dictionary of metrics if passed, else None.
+    Returns a dictionary of metrics including Risk_Flags.
     """
     if dart is None:
-        return None
+        return {'Risk_Flags': 'DART API 미지정'}
 
     # Build list of reports to try: primary first, then fallbacks
     reports_to_try = [(year, reprt_code)]
@@ -297,49 +330,88 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
             break
 
     if df_fin is None or df_fin.empty:
-        return None
+        return {'Risk_Flags': 'DART 데이터 미비'}
 
-    # Calculate ROE
+    # ─────────────────────────────────────────────
+    #  Risk Diagnostics
+    # ─────────────────────────────────────────────
+    Risk_Flags = []
+
+    # 1. 영업이익 및 OCF
+    op_income = _find_account_value(df_fin, OPER_INCOME_NAMES, 'thstrm_amount')
+    ocf = _find_account_value(df_fin, OCF_NAMES, 'thstrm_amount')
+    if op_income is not None and ocf is not None:
+        if op_income > 0 and ocf < 0:
+            Risk_Flags.append("[위험 1-1] 영업이익 흑자 대 영업현금 적자")
+
+    # 2. FCF 적자
+    if ocf is not None:
+        capex_val = 0.0
+        for name in CAPEX_ACQUISITION_NAMES:
+            val = _find_account_value(df_fin, [name], 'thstrm_amount')
+            if val is not None:
+                capex_val += abs(val)
+        fcf = ocf - capex_val
+        if fcf < 0:
+            Risk_Flags.append("[위험 1-2] FCF 적자")
+
+    # 3. 운전자본 급증
+    rev_cur = _find_account_value(df_fin, REVENUE_NAMES, 'thstrm_amount')
+    rev_prev = _find_account_value(df_fin, REVENUE_NAMES, 'frmtrm_amount')
+    ar_cur = _find_account_value(df_fin, AR_NAMES, 'thstrm_amount')
+    ar_prev = _find_account_value(df_fin, AR_NAMES, 'frmtrm_amount')
+    inv_cur = _find_account_value(df_fin, INV_NAMES, 'thstrm_amount')
+    inv_prev = _find_account_value(df_fin, INV_NAMES, 'frmtrm_amount')
+
+    rev_growth = ((rev_cur - rev_prev) / rev_prev) * 100 if (rev_cur is not None and rev_prev and rev_prev > 0) else None
+    ar_growth = ((ar_cur - ar_prev) / ar_prev) * 100 if (ar_cur is not None and ar_prev and ar_prev > 0) else None
+    inv_growth = ((inv_cur - inv_prev) / inv_prev) * 100 if (inv_cur is not None and inv_prev and inv_prev > 0) else None
+
+    has_wc_risk = False
+    if rev_growth is not None:
+        if rev_growth >= 5.0:
+            if (ar_growth is not None and ar_growth > rev_growth * 2.0) or \
+               (inv_growth is not None and inv_growth > rev_growth * 2.0):
+                has_wc_risk = True
+        else:
+            if (ar_growth is not None and ar_growth >= 15.0) or \
+               (inv_growth is not None and inv_growth >= 15.0):
+                has_wc_risk = True
+    if has_wc_risk:
+        Risk_Flags.append("[위험 2-1] 운전자본 급증")
+
+    # 4. CB/BW/유증 빈도
+    capital_events = 0
+    for y in [used_year - 1, used_year] if used_year else [year - 1, year]:
+        try:
+            df_cap = dart.report(corp_code, "증자", y)
+            if df_cap is not None and not df_cap.empty and 'isu_dcrs_stle' in df_cap.columns:
+                for _, r in df_cap.iterrows():
+                    stle = str(r['isu_dcrs_stle'])
+                    if any(kw in stle for kw in ['유상증자', '전환사채', '신주인수권', 'CB', 'BW', '제3자배정']):
+                        capital_events += 1
+        except Exception as e:
+            logger.debug(f"Error fetching capital change for {corp_code} in {y}: {e}")
+    if capital_events >= 2:
+        Risk_Flags.append("[위험 3-1] 자본 조달 방식 악화")
+
+    Risk_Flags_str = ", ".join(Risk_Flags) if Risk_Flags else "정상"
+
+    # Calculate standard metrics (ROE, EPS growth) for reporting purposes
     roe = calculate_roe(df_fin)
-    if roe is None:
-        logger.debug(f"  {corp_code}: ROE calculation failed (missing data)")
-        return None
-
-    # Calculate EPS YoY
     eps_yoy = calculate_eps_yoy(df_fin)
-    if eps_yoy is None:
-        logger.debug(f"  {corp_code}: EPS YoY calculation failed (missing data)")
-        return None
-
-    # Calculate EPS QoQ
     eps_qoq = calculate_eps_qoq(corp_code, used_year, used_reprt_code)
-    if eps_qoq is None:
-        logger.debug(f"  {corp_code}: EPS QoQ calculation failed (missing data)")
-        return None
 
-    # Apply filters
-    if roe >= ROE_MIN and eps_yoy >= EPS_YOY_MIN and eps_qoq >= EPS_QOQ_MIN:
-        revenue_val = _find_account_value(df_fin, REVENUE_NAMES, 'thstrm_amount')
-        oper_income_val = _find_account_value(df_fin, OPER_INCOME_NAMES, 'thstrm_amount')
-        
-        revenue_100m = round(revenue_val / 100000000.0, 1) if revenue_val is not None else None
-        oper_income_100m = round(oper_income_val / 100000000.0, 1) if oper_income_val is not None else None
-
-        return {
-            'ROE': round(roe, 2),
-            'EPS_YoY': round(eps_yoy, 2),
-            'EPS_QoQ': round(eps_qoq, 2),
-            'Revenue': revenue_100m,
-            'Operating_Income': oper_income_100m,
-            'Report_Year': used_year,
-            'Report_Code': used_reprt_code,
-        }
-
-    logger.debug(
-        f"  {corp_code}: Filtered out "
-        f"(ROE={roe:.1f}, YoY={eps_yoy:.1f}, QoQ={eps_qoq:.1f})"
-    )
-    return None
+    return {
+        'ROE': round(roe, 2) if roe is not None else None,
+        'EPS_YoY': round(eps_yoy, 2) if eps_yoy is not None else None,
+        'EPS_QoQ': round(eps_qoq, 2) if eps_qoq is not None else None,
+        'Revenue': round(rev_cur / 100000000.0, 1) if rev_cur is not None else None,
+        'Operating_Income': round(op_income / 100000000.0, 1) if op_income is not None else None,
+        'Report_Year': used_year,
+        'Report_Code': used_reprt_code,
+        'Risk_Flags': Risk_Flags_str
+    }
 
 
 # ─────────────────────────────────────────────
@@ -380,41 +452,43 @@ def run_stage2_screening(df_stage1, target_date=None):
     for i, (_, row) in enumerate(df_stage1.iterrows()):
         ticker = row['Ticker']
         corp_code = ticker_to_corp.get(ticker)
+        result = row.to_dict()
 
         # Progress logging
         if i % 10 == 0:
             logger.info(f"Processing Stage 2: {i}/{total}")
 
         if not corp_code:
-            logger.debug(f"  {ticker}: No corp_code found, skipping")
+            logger.debug(f"  {ticker}: No corp_code found")
+            result['Risk_Flags'] = 'DART corp_code 없음'
+            passed_fundamentals.append(result)
             continue
 
         try:
             metrics = evaluate_fundamentals(corp_code, year, reprt_code)
             if metrics:
-                result = row.to_dict()
                 for key, val in metrics.items():
                     if val is not None or key not in result:
                         result[key] = val
                 passed_fundamentals.append(result)
                 name = row.get('Name', ticker)
                 logger.info(
-                    f"  ✓ {name}({ticker}): "
-                    f"ROE={metrics['ROE']:.1f}%, "
-                    f"YoY={metrics['EPS_YoY']:.1f}%, "
-                    f"QoQ={metrics['EPS_QoQ']:.1f}%"
+                    f"  ✓ {name}({ticker}): Risk={metrics.get('Risk_Flags', 'N/A')}"
                 )
+            else:
+                result['Risk_Flags'] = '검증 실패'
+                passed_fundamentals.append(result)
         except Exception as e:
             logger.error(f"  Error evaluating {ticker}: {e}")
-            continue
+            result['Risk_Flags'] = f'DART 오류: {e}'
+            passed_fundamentals.append(result)
 
     df_passed = pd.DataFrame(passed_fundamentals)
 
     if not df_passed.empty:
-        # Sort by ROE descending
-        df_passed = df_passed.sort_values('ROE', ascending=False).reset_index(drop=True)
+        df_passed = df_passed.reset_index(drop=True)
 
-    logger.info(f"STAGE 2 Completed. {len(df_passed)} tickers passed.")
+    logger.info(f"STAGE 2 Completed. {len(df_passed)} tickers processed (Diagnostic mode).")
     return df_passed
 
 

@@ -127,6 +127,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return `<span class="badge grey">1주 신규</span>`;
     }
 
+    // Badge styling for Risk Flags
+    function getRiskBadge(riskFlags) {
+        if (!riskFlags || riskFlags === '정상') {
+            return `<span class="badge risk-green" title="재무 리스크 없음 (정상)"><i class="fa-solid fa-circle-check"></i> 정상</span>`;
+        }
+        
+        if (riskFlags.includes('DART 데이터 미비') || riskFlags.includes('DART corp_code 없음') || riskFlags.includes('DART 오류') || riskFlags.includes('DART API 미지정')) {
+            return `<span class="badge risk-grey" title="${riskFlags}"><i class="fa-solid fa-circle-minus"></i> N/A</span>`;
+        }
+        
+        // 빨간색 위험 뱃지: 마우스 오버 시 title 속성에 설명 표시
+        return `<span class="badge risk-red" title="${riskFlags}"><i class="fa-solid fa-circle-exclamation"></i> 위험</span>`;
+    }
+
     // Fetch and Load data
     async function loadData() {
         try {
@@ -170,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(error);
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="empty-state">
+                    <td colspan="11" class="empty-state">
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         데이터를 로드하지 못했습니다.<br>
                         <span style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; display: block;">
@@ -213,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="empty-state">
+                    <td colspan="11" class="empty-state">
                         <i class="fa-solid fa-folder-open"></i> 조건에 부합하는 종목이 없습니다.
                     </td>
                 </tr>
@@ -255,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="num-col">${formatRatio(stock.PER)}</td>
                 <td class="num-col">${formatRatio(stock.PBR)}</td>
                 <td class="num-col">${formatExcessReturn(stock.Excess_Return_3M)}</td>
+                <td class="center-col">${getRiskBadge(stock.Risk_Flags)}</td>
                 <td class="center-col">${getAppearanceBadge(stock.Appearance_Count)}</td>
             `;
             

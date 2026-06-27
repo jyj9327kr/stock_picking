@@ -315,6 +315,11 @@ def run_stage1_screening(target_date=None):
             except Exception as e:
                 logger.error(f"Error updating financials for {ticker}: {e}")
                 
+        # Filter out stocks with negative recent operating income (적자 기업 제외)
+        initial_passed_count = len(df_passed)
+        df_passed = df_passed[~(df_passed['Operating_Income'].notna() & (df_passed['Operating_Income'] < 0))]
+        logger.info(f"Filtered out {initial_passed_count - len(df_passed)} stocks with negative recent operating income. Remaining: {len(df_passed)}")
+
         df_passed = df_passed.sort_values('Distance_52W_High', ascending=True).reset_index(drop=True)
 
     logger.info(f"STAGE 1 Completed. {len(df_passed)} tickers passed.")
