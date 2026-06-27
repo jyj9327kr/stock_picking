@@ -130,15 +130,48 @@ document.addEventListener('DOMContentLoaded', () => {
     // Badge styling for Risk Flags
     function getRiskBadge(riskFlags) {
         if (!riskFlags || riskFlags === '정상') {
-            return `<span class="badge risk-green" title="재무 리스크 없음 (정상)"><i class="fa-solid fa-circle-check"></i> 정상</span>`;
+            return `
+                <div class="tooltip-container normal">
+                    <span class="badge risk-green"><i class="fa-solid fa-circle-check"></i> 정상</span>
+                    <div class="tooltip-box">
+                        <div class="tooltip-header"><i class="fa-solid fa-circle-check"></i> 재무 리스크 없음</div>
+                        <ul class="tooltip-list">
+                            <li>DART 스크리닝 요건 충족</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         }
         
         if (riskFlags.includes('DART 데이터 미비') || riskFlags.includes('DART corp_code 없음') || riskFlags.includes('DART 오류') || riskFlags.includes('DART API 미지정')) {
-            return `<span class="badge risk-grey" title="${riskFlags}"><i class="fa-solid fa-circle-minus"></i> N/A</span>`;
+            return `
+                <div class="tooltip-container na">
+                    <span class="badge risk-grey"><i class="fa-solid fa-circle-minus"></i> N/A</span>
+                    <div class="tooltip-box">
+                        <div class="tooltip-header"><i class="fa-solid fa-circle-minus"></i> 분석 데이터 미비</div>
+                        <ul class="tooltip-list">
+                            <li>${riskFlags}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
         }
         
-        // 빨간색 위험 뱃지: 마우스 오버 시 title 속성에 설명 표시
-        return `<span class="badge risk-red" title="${riskFlags}"><i class="fa-solid fa-circle-exclamation"></i> 위험</span>`;
+        // 쉼표로 리스크 항목 분할 후 리스트 항목으로 변환
+        const flagsArray = riskFlags.split(',').map(f => f.strip ? f.strip() : f.trim()).filter(f => f.length > 0);
+        const listItems = flagsArray.map(flag => `<li>${flag}</li>`).join('');
+        
+        return `
+            <div class="tooltip-container">
+                <span class="badge risk-red"><i class="fa-solid fa-circle-exclamation"></i> 위험</span>
+                <div class="tooltip-box">
+                    <div class="tooltip-header"><i class="fa-solid fa-circle-exclamation"></i> 발견된 재무 리스크</div>
+                    <ul class="tooltip-list">
+                        ${listItems}
+                    </ul>
+                </div>
+            </div>
+        `;
     }
 
     // Fetch and Load data

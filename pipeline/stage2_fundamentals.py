@@ -342,7 +342,7 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
     ocf = _find_account_value(df_fin, OCF_NAMES, 'thstrm_amount')
     if op_income is not None and ocf is not None:
         if op_income > 0 and ocf < 0:
-            Risk_Flags.append("[위험 1-1] 영업이익 흑자 대 영업현금 적자")
+            Risk_Flags.append("영업이익은 흑자이지만 영업활동현금흐름 적자")
 
     # 2. FCF 적자
     if ocf is not None:
@@ -353,7 +353,7 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
                 capex_val += abs(val)
         fcf = ocf - capex_val
         if fcf < 0:
-            Risk_Flags.append("[위험 1-2] FCF 적자")
+            Risk_Flags.append("FCF 적자")
 
     # 3. 운전자본 급증
     rev_cur = _find_account_value(df_fin, REVENUE_NAMES, 'thstrm_amount')
@@ -378,7 +378,7 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
                (inv_growth is not None and inv_growth >= 15.0):
                 has_wc_risk = True
     if has_wc_risk:
-        Risk_Flags.append("[위험 2-1] 운전자본 급증")
+        Risk_Flags.append("운전자본 급증")
 
     # 4. CB/BW/유증 빈도
     capital_events = 0
@@ -393,7 +393,7 @@ def evaluate_fundamentals(corp_code, year, reprt_code):
         except Exception as e:
             logger.debug(f"Error fetching capital change for {corp_code} in {y}: {e}")
     if capital_events >= 2:
-        Risk_Flags.append("[위험 3-1] 자본 조달 방식 악화")
+        Risk_Flags.append("CB/BW 및 유상증자 이력")
 
     Risk_Flags_str = ", ".join(Risk_Flags) if Risk_Flags else "정상"
 
