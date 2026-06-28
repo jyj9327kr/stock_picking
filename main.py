@@ -257,12 +257,11 @@ def run_weekly():
             logger.info(f"Stage 1 yielded no results for {target_date_str}, skipping Stage 2.")
             continue
             
-        # Limit to top 50 before Stage 2 to save DART API calls
-        df_stage1_top = df_stage1.sort_values(by='Distance_52W_High').head(50)
-        logger.info(f"Passing top {len(df_stage1_top)} tickers to Stage 2 (out of {len(df_stage1)} from Stage 1)")
+        # Run Stage 2 on all tickers that passed Stage 1
+        logger.info(f"Passing all {len(df_stage1)} tickers to Stage 2")
         
         # Stage 2
-        df_stage2 = run_stage2_screening(df_stage1_top, target_date=target_date_str)
+        df_stage2 = run_stage2_screening(df_stage1, target_date=target_date_str)
         save_results(df_stage2, "Watchlist_Weekly", custom_timestamp=timestamp_str)
         
         if target_date_str == dates[0][0]:
